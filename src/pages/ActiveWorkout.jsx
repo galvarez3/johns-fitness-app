@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle, X, Check, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, X, Check, Clock, Pencil, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { useTimer } from '../hooks/useTimer.js';
 import RestTimer from '../components/RestTimer.jsx';
@@ -24,6 +24,8 @@ export default function ActiveWorkout() {
   const [currentSetInput, setCurrentSetInput] = useState({ weight: '', reps: '', formGood: true });
   const [startTime] = useState(Date.now());
   const [finished, setFinished] = useState(false);
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editValues, setEditValues] = useState({ weight: '', reps: '', formGood: true });
 
   if (!workout) {
     return (
@@ -37,13 +39,15 @@ export default function ActiveWorkout() {
   const exercise = exercises[exerciseIdx];
 
   const handleLogSet = useCallback(() => {
-    const w = parseFloat(currentSetInput.weight);
+    const weightStr = String(currentSetInput.weight).trim();
+    const w = weightStr === '' ? null : parseFloat(weightStr);
     const r = parseInt(currentSetInput.reps, 10);
-    if ((!w && !exercise.isBodyweight) || !r || r <= 0) return;
+    if (!r || r <= 0) return;
+    if (!exercise.isBodyweight && (w === null || Number.isNaN(w) || w < 0)) return;
 
     const newSet = {
       setNum: exercise.completedSets.length + 1,
-      weight: w || 0,
+      weight: w ?? 0,
       reps: r,
       formGood: currentSetInput.formGood,
       estimated1RM: w && r ? epley(w, r) : null,
@@ -61,6 +65,53 @@ export default function ActiveWorkout() {
     // Start rest timer
     timer.start(exercise.restSeconds || 90);
   }, [currentSetInput, exercise, exerciseIdx, exercises, timer]);
+
+  const startEditSet = useCallback((set, idx) => {
+    setEditingIdx(idx);
+    setEditValues({
+      weight: set.weight === 0 && exercise.isBodyweight ? '' : String(set.weight ?? ''),
+      reps: String(set.reps ?? ''),
+      formGood: set.formGood,
+    });
+  }, [exercise]);
+
+  const cancelEdit = useCallback(() => setEditingIdx(null), []);
+
+  const saveEditSet = useCallback(() => {
+    const weightStr = String(editValues.weight).trim();
+    const w = weightStr === '' ? null : parseFloat(weightStr);
+    const r = parseInt(editValues.reps, 10);
+    if (!r || r <= 0) return;
+    if (!exercise.isBodyweight && (w === null || Number.isNaN(w) || w < 0)) return;
+
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exerciseIdx) return ex;
+      const completedSets = ex.completedSets.map((s, si) =>
+        si === editingIdx
+          ? {
+              ...s,
+              weight: w ?? 0,
+              reps: r,
+              formGood: editValues.formGood,
+              estimated1RM: w && r ? epley(w, r) : null,
+            }
+          : s
+      );
+      return { ...ex, completedSets };
+    }));
+    setEditingIdx(null);
+  }, [editValues, exercise, exerciseIdx, editingIdx]);
+
+  const deleteEditSet = useCallback(() => {
+    setExercises(prev => prev.map((ex, i) => {
+      if (i !== exerciseIdx) return ex;
+      const completedSets = ex.completedSets
+        .filter((_, si) => si !== editingIdx)
+        .map((s, si) => ({ ...s, setNum: si + 1 }));
+      return { ...ex, completedSets };
+    }));
+    setEditingIdx(null);
+  }, [exerciseIdx, editingIdx]);
 
   const handleFinish = useCallback(async () => {
     timer.stop();
@@ -112,12 +163,12 @@ export default function ActiveWorkout() {
           <button
             key={ex.id}
             onClick={() => setExerciseIdx(i)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+            className={`flex-shrink-0 w-9 h-9 rounded-2xl text-sm font-bold transition-all active:scale-90 ${
               i === exerciseIdx
-                ? 'bg-sky-500 text-white'
+                ? 'bg-sky-400 text-slate-950 shadow-glow'
                 : ex.completedSets.length >= ex.sets
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                  : 'bg-slate-800 text-slate-400'
+                  ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                  : 'bg-slate-800/70 text-slate-400 border border-white/[0.06]'
             }`}
           >
             {i + 1}
@@ -130,8 +181,8 @@ export default function ActiveWorkout() {
         <div className="mb-4">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white">{exercise.name}</h2>
-              <div className="text-slate-400 text-sm mt-0.5">{exercise.equipment}</div>
+              <h2 className="display text-3xl text-white leading-[0.95]">{exercise.name}</h2>
+              <div className="text-slate-400 text-sm mt-1.5">{exercise.equipment}</div>
             </div>
             <div className="text-right">
               <div className="text-sky-400 font-bold text-lg">{exercise.sets}×{exercise.repsMin}–{exercise.repsMax}</div>
@@ -143,9 +194,9 @@ export default function ActiveWorkout() {
 
           {/* Target weight badge */}
           {!exercise.isBodyweight && (
-            <div className="mt-2 inline-flex items-center gap-1.5 bg-slate-800 rounded-xl px-3 py-1.5">
-              <span className="text-slate-400 text-xs">Target</span>
-              <span className="text-white font-bold">{exercise.targetWeight} lbs</span>
+            <div className="mt-3 inline-flex items-center gap-1.5 bg-slate-800/70 border border-white/[0.06] rounded-full px-3.5 py-1.5">
+              <span className="text-slate-400 text-xs font-medium">Target</span>
+              <span className="text-sky-400 font-bold">{exercise.targetWeight} lbs</span>
             </div>
           )}
         </div>
@@ -153,23 +204,44 @@ export default function ActiveWorkout() {
         {/* Completed sets */}
         {exercise.completedSets.length > 0 && (
           <div className="mb-4">
-            <div className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">Completed Sets</div>
+            <div className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-2">
+              Completed Sets <span className="text-slate-600 normal-case tracking-normal font-normal">· tap to edit</span>
+            </div>
             <div className="space-y-2">
-              {exercise.completedSets.map((s) => (
-                <div key={s.setNum} className="flex items-center justify-between bg-slate-800/50 rounded-xl px-4 py-2.5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 text-xs font-bold flex items-center justify-center">
-                      {s.setNum}
+              {exercise.completedSets.map((s, idx) => (
+                editingIdx === idx ? (
+                  <SetEditor
+                    key={s.setNum}
+                    isBodyweight={exercise.isBodyweight}
+                    values={editValues}
+                    setValues={setEditValues}
+                    onSave={saveEditSet}
+                    onDelete={deleteEditSet}
+                    onCancel={cancelEdit}
+                  />
+                ) : (
+                  <button
+                    key={s.setNum}
+                    onClick={() => startEditSet(s, idx)}
+                    className="w-full flex items-center justify-between bg-slate-800/50 rounded-xl px-4 py-2.5 text-left active:bg-slate-800 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-green-500/20 text-green-400 text-xs font-bold flex items-center justify-center">
+                        {s.setNum}
+                      </div>
+                      <span className="text-white font-semibold">
+                        {exercise.isBodyweight && !s.weight ? 'BW' : `${s.weight} lbs`} × {s.reps} reps
+                      </span>
                     </div>
-                    <span className="text-white font-semibold">
-                      {s.weight ? `${s.weight} lbs` : 'BW'} × {s.reps} reps
-                    </span>
-                  </div>
-                  <div className="text-slate-400 text-xs">
-                    {s.estimated1RM ? `~${s.estimated1RM} 1RM` : ''}
-                    {s.formGood ? '' : ' ⚠'}
-                  </div>
-                </div>
+                    <div className="flex items-center gap-2 text-slate-400 text-xs">
+                      <span>
+                        {s.estimated1RM ? `~${s.estimated1RM} 1RM` : ''}
+                        {s.formGood ? '' : ' ⚠'}
+                      </span>
+                      <Pencil size={13} className="text-slate-500" />
+                    </div>
+                  </button>
+                )
               ))}
             </div>
           </div>
@@ -224,7 +296,7 @@ export default function ActiveWorkout() {
 
             <button
               onClick={handleLogSet}
-              className="w-full btn-primary py-4 text-base"
+              className="w-full btn-primary py-4 text-base cta-glow disabled:opacity-40 disabled:shadow-none"
               disabled={!currentSetInput.reps}
             >
               Log Set
@@ -271,6 +343,67 @@ export default function ActiveWorkout() {
   );
 }
 
+function SetEditor({ isBodyweight, values, setValues, onSave, onDelete, onCancel }) {
+  return (
+    <div className="card p-4 border-sky-500/40">
+      <div className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-3">Edit Set</div>
+      <div className="flex gap-3 mb-3">
+        {!isBodyweight && (
+          <div className="flex-1">
+            <label className="text-xs text-slate-400 mb-1 block">Weight (lbs)</label>
+            <input
+              type="number"
+              className="input-field text-center text-xl font-bold"
+              placeholder="—"
+              value={values.weight}
+              onChange={e => setValues(p => ({ ...p, weight: e.target.value }))}
+              inputMode="decimal"
+            />
+          </div>
+        )}
+        <div className="flex-1">
+          <label className="text-xs text-slate-400 mb-1 block">Reps</label>
+          <input
+            type="number"
+            className="input-field text-center text-xl font-bold"
+            placeholder="—"
+            value={values.reps}
+            onChange={e => setValues(p => ({ ...p, reps: e.target.value }))}
+            inputMode="numeric"
+          />
+        </div>
+      </div>
+
+      <button
+        onClick={() => setValues(p => ({ ...p, formGood: !p.formGood }))}
+        className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl border text-sm font-medium mb-3 transition-colors ${
+          values.formGood
+            ? 'bg-green-500/10 border-green-500/30 text-green-400'
+            : 'bg-slate-800 border-slate-700 text-slate-400'
+        }`}
+      >
+        {values.formGood ? <Check size={16} /> : <X size={16} />}
+        Form Good
+      </button>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onDelete}
+          className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold active:bg-red-500/20 transition-colors"
+        >
+          <Trash2 size={15} /> Delete
+        </button>
+        <button onClick={onCancel} className="flex-1 btn-secondary py-2.5 text-sm">
+          Cancel
+        </button>
+        <button onClick={onSave} className="flex-1 btn-primary py-2.5 text-sm">
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function WorkoutComplete({ exercises, workout, onDone }) {
   const totalSets = exercises.reduce((sum, ex) => sum + ex.completedSets.length, 0);
   const totalReps = exercises.reduce(
@@ -283,17 +416,17 @@ function WorkoutComplete({ exercises, workout, onDone }) {
       <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-5">
         <CheckCircle size={40} className="text-green-400" />
       </div>
-      <h2 className="text-2xl font-bold text-white">Session Complete!</h2>
-      <div className="text-slate-400 mt-1">{workout.workoutType} · {format(new Date(), 'MMMM d')}</div>
+      <h2 className="display text-4xl text-white">Session Complete</h2>
+      <div className="text-slate-400 mt-1.5">{workout.workoutType} · {format(new Date(), 'MMMM d')}</div>
 
       <div className="grid grid-cols-2 gap-4 w-full mt-8 max-w-xs">
-        <div className="card p-4">
-          <div className="text-2xl font-bold text-white">{totalSets}</div>
-          <div className="text-slate-400 text-sm">Total Sets</div>
+        <div className="card-light p-4">
+          <div className="text-3xl font-extrabold text-slate-950">{totalSets}</div>
+          <div className="text-slate-500 text-sm">Total Sets</div>
         </div>
-        <div className="card p-4">
-          <div className="text-2xl font-bold text-white">{totalReps}</div>
-          <div className="text-slate-400 text-sm">Total Reps</div>
+        <div className="card-light p-4">
+          <div className="text-3xl font-extrabold text-slate-950">{totalReps}</div>
+          <div className="text-slate-500 text-sm">Total Reps</div>
         </div>
       </div>
 

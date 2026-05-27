@@ -10,6 +10,11 @@
     @apply bg-slate-950 text-white font-sans;
     overscroll-behavior: none;
     -webkit-font-smoothing: antialiased;
+    /* Subtle electric-cyan glow backdrop (reference design language) */
+    background-image:
+      radial-gradient(60% 40% at 80% 12%, rgba(111,233,242,0.14), transparent 70%),
+      radial-gradient(55% 35% at 12% 88%, rgba(34,211,219,0.10), transparent 70%);
+    background-attachment: fixed;
   }
   * {
     @apply box-border;
@@ -17,23 +22,51 @@
 }
 
 @layer components {
+  /* Big poster-style display headers (DIARY / WORKOUT look) */
+  .display {
+    font-family: 'Archivo Black', Inter, system-ui, sans-serif;
+    @apply uppercase tracking-tight leading-[0.92];
+  }
+  /* Chunky tabular display numerals for stats */
+  .stat-num {
+    font-family: 'Archivo Black', Inter, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    @apply tracking-tight leading-none;
+  }
+  /* Dark surface card */
   .card {
-    @apply bg-slate-900 rounded-2xl border border-slate-800;
+    @apply bg-slate-900/80 rounded-3xl border border-white/[0.06] backdrop-blur-sm;
+  }
+  /* White "bento" card for data / big numerals — lifted with a cyan-tinted ambient glow */
+  .card-light {
+    @apply bg-white text-slate-950 rounded-[26px];
+    box-shadow:
+      0 18px 40px -20px rgba(0,0,0,0.8),
+      0 0 0 1px rgba(255,255,255,0.04),
+      0 8px 30px -16px rgba(111,233,242,0.35);
+  }
+  /* Circular icon button (header chips) */
+  .icon-btn {
+    @apply w-10 h-10 rounded-full bg-slate-800/70 border border-white/[0.06] flex items-center justify-center text-slate-300 active:scale-90 transition-transform duration-150 select-none;
   }
   .btn-primary {
-    @apply bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white font-semibold rounded-xl px-6 py-3 transition-colors duration-150 select-none;
+    @apply bg-sky-400 hover:bg-sky-300 active:bg-sky-500 text-slate-950 font-bold rounded-2xl px-6 py-3 transition-all duration-150 select-none active:scale-[0.98];
   }
   .btn-secondary {
-    @apply bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white font-semibold rounded-xl px-6 py-3 transition-colors duration-150 select-none;
+    @apply bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white font-semibold rounded-2xl px-6 py-3 transition-all duration-150 select-none active:scale-[0.98];
   }
   .btn-ghost {
-    @apply hover:bg-slate-800 active:bg-slate-700 text-slate-400 hover:text-white font-medium rounded-xl px-4 py-2 transition-colors duration-150 select-none;
+    @apply hover:bg-slate-800 active:bg-slate-700 text-slate-400 hover:text-white font-medium rounded-2xl px-4 py-2 transition-colors duration-150 select-none;
   }
   .input-field {
-    @apply bg-slate-800 border border-slate-700 focus:border-sky-500 text-white rounded-xl px-4 py-3 w-full outline-none transition-colors duration-150 text-lg;
+    @apply bg-slate-800/80 border border-white/[0.06] focus:border-sky-400 text-white rounded-2xl px-4 py-3 w-full outline-none transition-colors duration-150 text-lg;
   }
   .tag {
-    @apply text-xs font-semibold px-2 py-0.5 rounded-full;
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+  /* Glowing cyan call-to-action */
+  .cta-glow {
+    box-shadow: 0 0 0 1px rgba(111,233,242,0.5), 0 14px 50px -12px rgba(111,233,242,0.55);
   }
 }
 

@@ -75,12 +75,12 @@ export default function ProgressPage() {
       {
         label: 'Bodyweight',
         data: bodyweightLog.map(e => e.weight),
-        borderColor: '#0ea5e9',
-        backgroundColor: 'rgba(14,165,233,0.1)',
+        borderColor: '#6FE9F2',
+        backgroundColor: 'rgba(111,233,242,0.12)',
         fill: true,
         tension: 0.3,
         pointRadius: 4,
-        pointBackgroundColor: '#0ea5e9',
+        pointBackgroundColor: '#6FE9F2',
       },
       {
         label: 'Goal',
@@ -94,9 +94,9 @@ export default function ProgressPage() {
 
   return (
     <div className="scroll-area pb-6">
-      <div className="px-4 pt-5 pb-4">
-        <h1 className="text-2xl font-bold text-white">Progress</h1>
-        <div className="text-slate-400 text-sm mt-0.5">Block {blockNum} · {sessionsThisBlock} sessions logged</div>
+      <div className="px-4 pt-6 pb-4">
+        <h1 className="display text-5xl text-white">Progress</h1>
+        <div className="text-slate-400 text-sm mt-1.5">Block {blockNum} · {sessionsThisBlock} sessions logged</div>
       </div>
 
       {/* Summary stats */}
@@ -106,20 +106,20 @@ export default function ProgressPage() {
         <StatCard icon={<TrendingUp size={14} className="text-green-400" />} label="To Goal" value={`${(goalWeight - latestBW).toFixed(1)} lbs`} />
       </div>
 
-      {/* Goal progress bar */}
+      {/* Goal progress ring */}
       <div className="px-4 mb-6">
-        <div className="card p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-white font-semibold">Bodyweight Goal</span>
-            <span className="text-sky-400 font-bold">{latestBW} / {goalWeight} lbs</span>
+        <div className="card p-5 flex items-center gap-5">
+          <GoalRing pct={goalPct} />
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-slate-500 font-bold">Bodyweight Goal</div>
+            <div className="mt-1.5 flex items-baseline gap-1.5">
+              <span className="stat-num text-[2.25rem] text-white">{latestBW}</span>
+              <span className="text-slate-500 text-sm font-medium">/ {goalWeight} lbs</span>
+            </div>
+            <div className="text-sky-400 text-sm mt-1 font-semibold">
+              {Math.max(0, goalWeight - latestBW).toFixed(1)} lbs to go
+            </div>
           </div>
-          <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-sky-500 rounded-full transition-all duration-500"
-              style={{ width: `${goalPct}%` }}
-            />
-          </div>
-          <div className="text-xs text-slate-500 mt-1">{goalPct}% of goal</div>
         </div>
       </div>
 
@@ -192,12 +192,12 @@ function LiftChart({ lift, sessionLogs, pr }) {
     : history;
 
   const colors = {
-    'Bench Press':   '#0ea5e9',
+    'Bench Press':   '#6FE9F2',
     'Back Squat':    '#22c55e',
     'Deadlift':      '#f59e0b',
     'Standing OHP':  '#a855f7',
   };
-  const color = colors[lift] || '#0ea5e9';
+  const color = colors[lift] || '#6FE9F2';
 
   const data = {
     labels: allPoints.map(p => p.date.slice(5)),
@@ -229,11 +229,35 @@ function LiftChart({ lift, sessionLogs, pr }) {
   );
 }
 
+function GoalRing({ pct }) {
+  const r = 46;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, pct));
+  return (
+    <div className="relative flex-shrink-0">
+      <svg width="108" height="108" className="-rotate-90">
+        <circle cx="54" cy="54" r={r} fill="none" stroke="#18181F" strokeWidth="10" />
+        <circle
+          cx="54" cy="54" r={r}
+          fill="none" stroke="#6FE9F2" strokeWidth="10" strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - clamped / 100)}
+          style={{ transition: 'stroke-dashoffset 0.7s ease-out' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="stat-num text-2xl text-white">{clamped}%</span>
+        <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest mt-0.5">of goal</span>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ icon, label, value }) {
   return (
-    <div className="card p-3 flex flex-col gap-1">
-      <div className="flex items-center gap-1 text-slate-400 text-xs">{icon}{label}</div>
-      <div className="text-white font-bold text-xl">{value}</div>
+    <div className="card-light p-3 flex flex-col gap-1">
+      <div className="flex items-center gap-1 text-slate-500 text-xs font-medium">{icon}{label}</div>
+      <div className="text-slate-950 font-extrabold text-xl">{value}</div>
     </div>
   );
 }

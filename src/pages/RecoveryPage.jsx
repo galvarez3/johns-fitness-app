@@ -1,8 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, ChevronRight, CheckCircle } from 'lucide-react';
 import { STRETCH_ROUTINE } from '../data/stretchRoutine.js';
+import { useApp } from '../context/AppContext.jsx';
+import { getNextWorkout } from '../engine/workoutGenerator.js';
+import { NextSessionPreview } from '../components/SessionOverview.jsx';
 
 export default function RecoveryPage() {
+  const { state } = useApp();
+  const nextWorkout = state.block ? getNextWorkout(state.block, state.blockStartDate) : null;
   const [current, setCurrent] = useState(0);
   const [side, setSide] = useState('left'); // 'left' | 'right' | null
   const [timeLeft, setTimeLeft] = useState(null);
@@ -85,10 +90,10 @@ export default function RecoveryPage() {
 
   return (
     <div className="scroll-area pb-6">
-      <div className="px-4 pt-5 pb-2">
+      <div className="px-4 pt-6 pb-2">
         <div className="text-slate-400 text-sm">Wednesday</div>
-        <h1 className="text-2xl font-bold text-white">Active Recovery</h1>
-        <div className="text-slate-500 text-sm mt-0.5">15 min stretch routine</div>
+        <h1 className="display text-5xl text-white mt-1 leading-[0.9]">Active<br/>Recovery</h1>
+        <div className="text-slate-500 text-sm mt-2">15 min stretch routine</div>
       </div>
 
       {/* Progress dots */}
@@ -136,7 +141,7 @@ export default function RecoveryPage() {
                   <circle
                     cx="60" cy="60" r="50"
                     fill="none"
-                    stroke={timeLeft === 0 ? '#22c55e' : '#0ea5e9'}
+                    stroke={timeLeft === 0 ? '#22c55e' : '#6FE9F2'}
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 50}
@@ -180,6 +185,12 @@ export default function RecoveryPage() {
           <ChevronRight size={18} />
         </button>
       </div>
+
+      {nextWorkout && (
+        <div className="px-4 mt-7">
+          <NextSessionPreview workout={nextWorkout} />
+        </div>
+      )}
     </div>
   );
 }

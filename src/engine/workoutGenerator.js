@@ -137,6 +137,44 @@ export function generateBlock(blockNum, workingWeights = {}, oneRMs = {}) {
   };
 }
 
+// Resolve the workout (if any) scheduled for a specific date
+export function getWorkoutForDate(block, blockStartDate, date) {
+  if (!block || !blockStartDate) return null;
+
+  const start = new Date(blockStartDate + 'T00:00:00');
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.floor((d - start) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return null;
+
+  const weekNum = Math.floor(diffDays / 7) + 1;
+  if (weekNum > 4) return null;
+
+  const dayOfWeek = d.getDay();
+  const workoutType = DAY_MAP[dayOfWeek];
+  if (!workoutType) return null;
+
+  const dayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek];
+  const weekData = block.weeks[weekNum - 1];
+  if (!weekData) return null;
+
+  const workout = weekData.workouts[dayKey];
+  return workout ? { ...workout, weekNum, dayOfWeek, dayKey } : null;
+}
+
+// Find the next upcoming workout within the next two weeks
+export function getNextWorkout(block, blockStartDate) {
+  for (let i = 1; i <= 14; i++) {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + i);
+    const workout = getWorkoutForDate(block, blockStartDate, date);
+    if (workout) return { ...workout, date, daysAway: i };
+  }
+  return null;
+}
+
 // Given a date, determine which workout to show
 export function getTodaysWorkout(block, blockStartDate) {
   if (!block || !blockStartDate) return null;

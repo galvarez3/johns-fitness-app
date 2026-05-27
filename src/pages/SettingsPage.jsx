@@ -71,24 +71,24 @@ export default function SettingsPage() {
 
   return (
     <div className="scroll-area pb-8">
-      <div className="px-4 pt-5 pb-4">
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <div className="text-slate-400 text-sm mt-0.5">Configure integrations & training</div>
+      <div className="px-4 pt-6 pb-4">
+        <h1 className="display text-5xl text-white">Settings</h1>
+        <div className="text-slate-400 text-sm mt-1.5">Configure integrations & training</div>
       </div>
 
       {/* Stats overview */}
       <div className="px-4 mb-6">
-        <div className="card p-4 grid grid-cols-3 gap-3 text-center">
+        <div className="card-light p-4 grid grid-cols-3 gap-3 text-center">
           <div>
-            <div className="text-white font-bold text-xl">{sessionsCount}</div>
+            <div className="text-slate-950 font-extrabold text-xl">{sessionsCount}</div>
             <div className="text-slate-500 text-xs">Sessions</div>
           </div>
           <div>
-            <div className="text-white font-bold text-xl">{bwCount}</div>
+            <div className="text-slate-950 font-extrabold text-xl">{bwCount}</div>
             <div className="text-slate-500 text-xs">Weigh-ins</div>
           </div>
           <div>
-            <div className="text-white font-bold text-xl">{blockNum}</div>
+            <div className="text-slate-950 font-extrabold text-xl">{blockNum}</div>
             <div className="text-slate-500 text-xs">Block #</div>
           </div>
         </div>

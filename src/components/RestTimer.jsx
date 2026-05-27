@@ -28,7 +28,7 @@ export default function RestTimer({ remaining, total, running, onStop, onAdd, on
             <circle
               cx="50" cy="50" r="44"
               fill="none"
-              stroke={remaining <= 10 ? '#ef4444' : '#0ea5e9'}
+              stroke={remaining <= 10 ? '#ef4444' : '#6FE9F2'}
               strokeWidth="6"
               strokeLinecap="round"
               strokeDasharray={CIRCUMFERENCE}

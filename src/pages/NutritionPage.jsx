@@ -31,9 +31,9 @@ export default function NutritionPage() {
 
   return (
     <div className="scroll-area pb-6">
-      <div className="px-4 pt-5 pb-4">
-        <h1 className="text-2xl font-bold text-white">Nutrition</h1>
-        <div className="text-slate-400 text-sm mt-0.5">Daily targets & meal timing</div>
+      <div className="px-4 pt-6 pb-4">
+        <h1 className="display text-5xl text-white">Nutrition</h1>
+        <div className="text-slate-400 text-sm mt-1.5">Daily targets & meal timing</div>
       </div>
 
       {/* Daily targets */}
