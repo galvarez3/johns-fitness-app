@@ -1,18 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, ChevronRight, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Play, Pause, RotateCcw, ChevronRight, CheckCircle, X } from 'lucide-react';
 import { STRETCH_ROUTINE } from '../data/stretchRoutine.js';
 import { useApp } from '../context/AppContext.jsx';
-import { getNextWorkout } from '../engine/workoutGenerator.js';
+import { getNextWorkout, getTodaysWorkout } from '../engine/workoutGenerator.js';
 import { NextSessionPreview } from '../components/SessionOverview.jsx';
 
 export default function RecoveryPage() {
-  const { state } = useApp();
+  const { state, actions } = useApp();
+  const navigate = useNavigate();
   const nextWorkout = state.block ? getNextWorkout(state.block, state.blockStartDate) : null;
   const [current, setCurrent] = useState(0);
   const [side, setSide] = useState('left'); // 'left' | 'right' | null
   const [timeLeft, setTimeLeft] = useState(null);
   const [running, setRunning] = useState(false);
   const [completed, setCompleted] = useState([]);
+  const [startTime] = useState(Date.now());
+  const loggedRef = useRef(false);
   const intervalRef = useRef(null);
 
   const stretch = STRETCH_ROUTINE[current];
@@ -62,20 +66,74 @@ export default function RecoveryPage() {
       clearInterval(intervalRef.current);
       return;
     }
-    setCompleted(prev => [...prev, current]);
-    if (current < STRETCH_ROUTINE.length - 1) {
-      setCurrent(prev => prev + 1);
-    }
+    setCompleted(prev => (prev.includes(current) ? prev : [...prev, current]));
+    setCurrent(prev => prev + 1); // advance past last index to trigger completion view
   };
+
+  const handleFinish = useCallback(() => {
+    if (loggedRef.current) return;
+    loggedRef.current = true;
+    clearInterval(intervalRef.current);
+    const todayInfo = state.block ? getTodaysWorkout(state.block, state.blockStartDate) : null;
+    const today = new Date().toISOString().split('T')[0];
+    const stretchesCompleted = completed.length + (current < STRETCH_ROUTINE.length && !completed.includes(current) ? 1 : 0);
+    const session = {
+      id: `session_${Date.now()}`,
+      date: today,
+      blockNum: state.blockNum,
+      weekNum: todayInfo?.weekNum ?? null,
+      workoutType: 'Active Recovery',
+      dayKey: 'wednesday',
+      exercises: [],
+      stretchesCompleted,
+      totalStretches: STRETCH_ROUTINE.length,
+      durationMinutes: Math.max(1, Math.round((Date.now() - startTime) / 60000)),
+      isRecovery: true,
+    };
+    actions.logSession(session);
+    setCurrent(STRETCH_ROUTINE.length); // jump to completion view
+  }, [actions, state.block, state.blockStartDate, state.blockNum, completed, current, startTime]);
+
+  // Auto-log when user reaches natural completion via Next
+  useEffect(() => {
+    if (current >= STRETCH_ROUTINE.length && !loggedRef.current) {
+      handleFinish();
+    }
+  }, [current, handleFinish]);
 
   useEffect(() => () => clearInterval(intervalRef.current), []);
 
   if (current >= STRETCH_ROUTINE.length) {
+    const elapsedMin = Math.max(1, Math.round((Date.now() - startTime) / 60000));
+    const doneCount = completed.length || STRETCH_ROUTINE.length;
     return (
-      <div className="scroll-area flex flex-col items-center justify-center text-center px-6 py-12">
-        <CheckCircle size={56} className="text-green-400 mb-4" />
-        <h2 className="text-2xl font-bold text-white">Recovery Complete</h2>
-        <p className="text-slate-400 mt-2">15 minutes well spent. See you tomorrow for Upper B.</p>
+      <div className="scroll-area flex flex-col items-center text-center px-6 pt-12 pb-6">
+        <div className="w-20 h-20 rounded-full bg-green-500/15 flex items-center justify-center mb-5">
+          <CheckCircle size={42} className="text-green-400" />
+        </div>
+        <h2 className="display text-4xl text-white">Recovery Logged</h2>
+        <p className="text-slate-400 mt-2 max-w-xs">Session saved. Nice work resetting the body.</p>
+
+        <div className="grid grid-cols-2 gap-4 w-full mt-8 max-w-xs">
+          <div className="card-light p-4">
+            <div className="stat-num text-3xl text-slate-950">{doneCount}</div>
+            <div className="text-slate-500 text-sm">Stretches</div>
+          </div>
+          <div className="card-light p-4">
+            <div className="stat-num text-3xl text-slate-950">{elapsedMin}</div>
+            <div className="text-slate-500 text-sm">Minutes</div>
+          </div>
+        </div>
+
+        <button onClick={() => navigate('/')} className="btn-primary w-full max-w-xs mt-8 py-4 cta-glow">
+          Back to Home
+        </button>
+
+        {nextWorkout && (
+          <div className="w-full mt-10">
+            <NextSessionPreview workout={nextWorkout} />
+          </div>
+        )}
       </div>
     );
   }
@@ -90,10 +148,19 @@ export default function RecoveryPage() {
 
   return (
     <div className="scroll-area pb-6">
-      <div className="px-4 pt-6 pb-2">
-        <div className="text-slate-400 text-sm">Wednesday</div>
-        <h1 className="display text-5xl text-white mt-1 leading-[0.9]">Active<br/>Recovery</h1>
-        <div className="text-slate-500 text-sm mt-2">15 min stretch routine</div>
+      <div className="px-4 pt-6 pb-2 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-slate-400 text-sm">Wednesday</div>
+          <h1 className="display text-5xl text-white mt-1 leading-[0.9]">Active<br/>Recovery</h1>
+          <div className="text-slate-500 text-sm mt-2">15 min stretch routine</div>
+        </div>
+        <button
+          onClick={handleFinish}
+          className="flex items-center gap-1.5 bg-slate-800/70 border border-white/[0.06] text-slate-200 text-xs font-semibold rounded-full px-3.5 py-2 active:scale-95 transition-transform"
+        >
+          <X size={14} />
+          End Session
+        </button>
       </div>
 
       {/* Progress dots */}
