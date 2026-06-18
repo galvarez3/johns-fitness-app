@@ -141,7 +141,9 @@ function reducer(state, action) {
     case 'ADVANCE_BLOCK': {
       const newBlockNum = state.blockNum + 1;
       const newBlock = generateBlock(newBlockNum, state.workingWeights, state.oneRMs);
-      const newStartDate = getNextMonday();
+      // Start the new block at THIS week's Monday so the current week's sessions
+      // are immediately available (was previously next Monday — left current week as rest).
+      const newStartDate = getCurrentWeekMonday();
       newBlock.startDate = newStartDate;
       return {
         ...state,
@@ -168,11 +170,30 @@ function calculateStreak(sessionLogs) {
   return completedWeeks.size;
 }
 
-function getNextMonday() {
+// Most recent Monday on or before today (YYYY-MM-DD, local time)
+function getCurrentWeekMonday() {
   const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+  const shift = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + shift);
+  return d.toISOString().split('T')[0];
+}
+
+// Snap any blockStartDate to the prior Monday, and ensure it's not later than this
+// week's Monday — fixes both Tuesday-start seed legacy and Advance-Block bugs that
+// previously stranded current-week days as "Rest Day".
+function normalizeBlockStartDate(dateStr) {
+  if (!dateStr) return getCurrentWeekMonday();
+  const d = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return getCurrentWeekMonday();
   const day = d.getDay();
-  const diff = day === 0 ? 1 : 8 - day;
-  d.setDate(d.getDate() + diff);
+  if (day !== 1) {
+    const shift = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + shift);
+  }
+  const thisMonday = new Date(getCurrentWeekMonday() + 'T00:00:00');
+  if (d.getTime() > thisMonday.getTime()) return getCurrentWeekMonday();
   return d.toISOString().split('T')[0];
 }
 
@@ -183,7 +204,14 @@ export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, null, () => {
     const saved = loadState();
     const initial = buildInitialState();
-    return saved ? { ...initial, ...saved, notifications: [] } : initial;
+    const merged = saved ? { ...initial, ...saved, notifications: [] } : initial;
+    // Self-heal blockStartDate so existing users with mis-aligned dates auto-fix.
+    const fixed = normalizeBlockStartDate(merged.blockStartDate);
+    if (fixed !== merged.blockStartDate) {
+      merged.blockStartDate = fixed;
+      merged.block = null; // force regen with corrected start
+    }
+    return merged;
   });
 
   // Generate block on first load or when missing

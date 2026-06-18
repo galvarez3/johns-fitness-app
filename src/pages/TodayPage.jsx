@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { Play, CheckCircle, Wind, Flame, Trophy, Target } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import { getTodaysWorkout, getNextWorkout } from '../engine/workoutGenerator.js';
-import { SessionOverview, NextSessionPreview } from '../components/SessionOverview.jsx';
+import { SessionOverview, NextSessionPreview, WorkoutPicker } from '../components/SessionOverview.jsx';
 import RecoveryPage from './RecoveryPage.jsx';
 
 const SCHEME_COLORS = {
@@ -34,6 +34,19 @@ export default function TodayPage() {
     ? getNextWorkout(state.block, state.blockStartDate)
     : null;
 
+  // For rest days, compute the current calendar week so the Lift Instead picker
+  // can offer this week's strength sessions.
+  let restDayWeekNum = null;
+  if (isRestDay && state.block && state.blockStartDate) {
+    const start = new Date(state.blockStartDate + 'T00:00:00');
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((t - start) / 86400000);
+    if (diffDays >= 0) {
+      const w = Math.floor(diffDays / 7) + 1;
+      if (w >= 1 && w <= 4) restDayWeekNum = w;
+    }
+  }
+
   return (
     <div className="scroll-area pb-6">
       {/* Header */}
@@ -60,6 +73,7 @@ export default function TodayPage() {
       {isRestDay ? (
         <div className="px-4 space-y-5">
           <RestDayCard />
+          {restDayWeekNum && <WorkoutPicker block={state.block} weekNum={restDayWeekNum} />}
           {nextWorkout && <NextSessionPreview workout={nextWorkout} />}
         </div>
       ) : (

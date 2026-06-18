@@ -11,7 +11,7 @@ export const STARTING_1RMS = {
 export const STARTING_BODYWEIGHT = 167;
 export const GOAL_BODYWEIGHT = 175;
 
-export const BLOCK_START_DATE = '2026-05-19'; // Monday, week 5
+export const BLOCK_START_DATE = '2026-05-18'; // Monday (block weeks roll Mon-Sun)
 export const STARTING_BLOCK = 2;
 export const HEIGHT = "5'11\"";
 

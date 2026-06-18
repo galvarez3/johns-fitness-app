@@ -4,12 +4,14 @@ import { Play, Pause, RotateCcw, ChevronRight, CheckCircle, X } from 'lucide-rea
 import { STRETCH_ROUTINE } from '../data/stretchRoutine.js';
 import { useApp } from '../context/AppContext.jsx';
 import { getNextWorkout, getTodaysWorkout } from '../engine/workoutGenerator.js';
-import { NextSessionPreview } from '../components/SessionOverview.jsx';
+import { NextSessionPreview, WorkoutPicker } from '../components/SessionOverview.jsx';
 
 export default function RecoveryPage() {
   const { state, actions } = useApp();
   const navigate = useNavigate();
   const nextWorkout = state.block ? getNextWorkout(state.block, state.blockStartDate) : null;
+  const todayInfo = state.block ? getTodaysWorkout(state.block, state.blockStartDate) : null;
+  const currentWeekNum = todayInfo?.weekNum ?? null;
   const [current, setCurrent] = useState(0);
   const [side, setSide] = useState('left'); // 'left' | 'right' | null
   const [timeLeft, setTimeLeft] = useState(null);
@@ -253,8 +255,14 @@ export default function RecoveryPage() {
         </button>
       </div>
 
+      {currentWeekNum && (
+        <div className="px-4 mt-6">
+          <WorkoutPicker block={state.block} weekNum={currentWeekNum} />
+        </div>
+      )}
+
       {nextWorkout && (
-        <div className="px-4 mt-7">
+        <div className="px-4 mt-6">
           <NextSessionPreview workout={nextWorkout} />
         </div>
       )}

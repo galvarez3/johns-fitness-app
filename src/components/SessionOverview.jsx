@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
-import { Dumbbell, Layers, Clock, CalendarDays } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Dumbbell, Layers, Clock, CalendarDays, Check, Play } from 'lucide-react';
 
 export function buildOverview(exercises = []) {
   const sets = exercises.reduce((sum, ex) => sum + (ex.sets || 0), 0);
@@ -59,6 +60,46 @@ export function SessionOverview({ workout }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Picker for choosing a strength session to do today (used on recovery/rest days)
+export function WorkoutPicker({ block, weekNum, title = 'Lift Instead', subtitle = 'Got time to lift? Pick a strength session from this week.' }) {
+  const navigate = useNavigate();
+  if (!block || !weekNum) return null;
+  const week = block.weeks?.[weekNum - 1];
+  if (!week) return null;
+
+  const entries = [
+    ['monday',   week.workouts.monday],
+    ['tuesday',  week.workouts.tuesday],
+    ['thursday', week.workouts.thursday],
+    ['friday',   week.workouts.friday],
+  ].filter(([, w]) => Boolean(w));
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="card p-4">
+      <div className="text-[11px] text-sky-400 uppercase tracking-[0.22em] font-bold mb-1.5">{title}</div>
+      <div className="text-slate-400 text-sm mb-4">{subtitle}</div>
+      <div className="grid grid-cols-2 gap-2.5">
+        {entries.map(([dayKey, w]) => (
+          <button
+            key={dayKey}
+            onClick={() => navigate('/workout', { state: { workout: { ...w, dayKey, weekNum } } })}
+            className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left active:scale-[0.98] transition-transform ${
+              w.completed
+                ? 'bg-green-500/10 border-green-500/25 text-green-300'
+                : 'bg-slate-800/70 border-white/[0.06] text-white hover:bg-slate-800'
+            }`}
+          >
+            <span className="text-sm font-bold">{w.workoutType}</span>
+            {w.completed ? <Check size={15} className="text-green-400" /> : <Play size={13} className="text-sky-400" fill="currentColor" />}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
