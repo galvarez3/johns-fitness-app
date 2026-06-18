@@ -205,12 +205,27 @@ export function AppProvider({ children }) {
     const saved = loadState();
     const initial = buildInitialState();
     const merged = saved ? { ...initial, ...saved, notifications: [] } : initial;
-    // Self-heal blockStartDate so existing users with mis-aligned dates auto-fix.
+
+    // Self-heal blockStartDate (snap to prior Monday, clamp to this week's Monday).
     const fixed = normalizeBlockStartDate(merged.blockStartDate);
     if (fixed !== merged.blockStartDate) {
       merged.blockStartDate = fixed;
-      merged.block = null; // force regen with corrected start
+      merged.block = null;
     }
+
+    // Auto-advance if the previous block has already expired (today is past day 28).
+    // Without this, a stale block leaves every day showing as "Rest Day" with no picker.
+    const start = new Date(merged.blockStartDate + 'T00:00:00');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - start) / 86400000);
+    const BLOCK_LENGTH_DAYS = 28;
+    if (diffDays >= BLOCK_LENGTH_DAYS) {
+      const blocksElapsed = Math.floor(diffDays / BLOCK_LENGTH_DAYS);
+      merged.blockNum = (merged.blockNum || 1) + blocksElapsed;
+      merged.blockStartDate = getCurrentWeekMonday();
+      merged.block = null;
+    }
+
     return merged;
   });
 
