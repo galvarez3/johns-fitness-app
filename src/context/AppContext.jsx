@@ -19,7 +19,8 @@ import {
   BW_MILESTONES,
 } from '../data/startingData.js';
 
-const STORAGE_KEY = 'johns_fitness_v1';
+// Bump version to clear old state when program structure changes significantly
+const STORAGE_KEY = 'johns_fitness_v3';
 
 function buildInitialState() {
   return {
